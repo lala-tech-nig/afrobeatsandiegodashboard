@@ -8,6 +8,7 @@ import { FaImage, FaCheckCircle, FaUpload } from 'react-icons/fa'
 export default function Carousel() {
   const [images, setImages] = useState([null, null, null])
   const [submitted, setSubmitted] = useState(false)
+  const [loading, setLoading] = useState(false)
 
   const handleImageChange = (e, index) => {
     const file = e.target.files[0]
@@ -22,20 +23,47 @@ export default function Carousel() {
     }
   }
 
-  const handlePublish = () => {
+  const handlePublish = async () => {
     if (images.every(img => img)) {
-      confetti({
-        particleCount: 150,
-        spread: 80,
-        origin: { y: 0.6 },
-      })
-      setSubmitted(true)
-      setTimeout(() => setSubmitted(false), 2000)
-      const end = Date.now() + 1000
-      const interval = setInterval(() => {
-        if (Date.now() > end) return clearInterval(interval)
-        confetti({ particleCount: 5, spread: 70, origin: { y: 0.6 } })
-      }, 200)
+      setLoading(true)
+      try {
+        const formData = new FormData()
+        images.forEach((img, idx) => {
+          const arr = img.split(',')
+          const mime = arr[0].match(/:(.*?);/)[1]
+          const bstr = atob(arr[1])
+          let n = bstr.length
+          const u8arr = new Uint8Array(n)
+          while (n--) u8arr[n] = bstr.charCodeAt(n)
+          const file = new File([u8arr], `carousel${idx + 1}.jpg`, { type: mime })
+          formData.append('images', file)
+        })
+
+        const response = await fetch('https://afrobeatsandiegobackend.onrender.com/api/carousel/bulk', {
+          method: 'POST',
+          body: formData,
+        })
+
+        if (!response.ok) throw new Error('Failed to upload images')
+        await response.json()
+
+        setLoading(false)
+        confetti({
+          particleCount: 150,
+          spread: 80,
+          origin: { y: 0.6 },
+        })
+        setSubmitted(true)
+        setTimeout(() => setSubmitted(false), 2000)
+        const end = Date.now() + 1000
+        const interval = setInterval(() => {
+          if (Date.now() > end) return clearInterval(interval)
+          confetti({ particleCount: 5, spread: 70, origin: { y: 0.6 } })
+        }, 200)
+      } catch (err) {
+        setLoading(false)
+        alert('Upload failed. Please try again.')
+      }
     } else {
       alert('Please upload all 3 images before publishing.')
     }
@@ -78,9 +106,24 @@ export default function Carousel() {
       </div>
       <button
         onClick={handlePublish}
-        className="w-full bg-gradient-to-r from-purple-500 to-purple-700 text-white font-bold py-3 rounded-xl shadow-md hover:scale-105 hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2"
+        disabled={loading}
+        className={`w-full bg-gradient-to-r from-purple-500 to-purple-700 text-white font-bold py-3 rounded-xl shadow-md flex items-center justify-center gap-2 transition-all duration-300
+          ${loading ? 'opacity-70 cursor-not-allowed' : 'hover:scale-105 hover:shadow-xl'}
+        `}
       >
-        <FaCheckCircle className="animate-pulse" /> Publish Carousel
+        {loading ? (
+          <span className="flex items-center gap-2">
+            <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 01-8 8z"/>
+            </svg>
+            Uploading...
+          </span>
+        ) : (
+          <>
+            <FaCheckCircle className="animate-pulse" /> Publish Carousel
+          </>
+        )}
       </button>
       {submitted && (
         <div className="text-green-600 text-center font-semibold animate-fade-in-down mt-2">
