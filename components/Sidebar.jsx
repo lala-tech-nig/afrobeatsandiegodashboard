@@ -12,7 +12,7 @@ const navItems = [
 
 export default function Sidebar({ setActive, active, className = "" }) {
   return (
-    <aside className={`hidden sm:flex flex-col items-center py-8 px-2 bg-white/80 shadow-xl rounded-r-3xl min-h-screen transition-all duration-500 w-56 ${className}`}>
+    <aside className={`hidden sm:flex flex-col items-center py-8 px-2 bg-white/80 shadow-xl rounded-r-3xl min-h-screen transition-all duration-500 w-fit ${className}`}>
       <div className="mb-10">
         <span className="text-2xl font-extrabold text-purple-600 tracking-wide">Afrobeats SD</span>
       </div>
