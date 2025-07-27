@@ -1,4 +1,3 @@
-// components/Events.jsx
 'use client'
 
 import { useState } from 'react'
@@ -7,6 +6,7 @@ import { FaCalendarAlt, FaClock, FaImage, FaLink, FaRegFileAlt, FaHeading, FaChe
 
 const fields = [
   { key: 'title', label: 'Title', icon: <FaHeading /> },
+  { key: 'date', label: 'Date', icon: <FaCalendarAlt />, type: 'date' },
   { key: 'time', label: 'Time', icon: <FaClock /> },
   { key: 'thumbnail', label: 'Thumbnail Image', icon: <FaImage />, type: 'file' },
   { key: 'image', label: 'Main Image', icon: <FaImage />, type: 'file' },
@@ -17,6 +17,7 @@ const fields = [
 export default function Events() {
   const [form, setForm] = useState({
     title: '',
+    date: '',
     time: '',
     thumbnail: null,
     image: null,
@@ -64,6 +65,7 @@ export default function Events() {
 
         setForm({
           title: '',
+          date: '',
           time: '',
           thumbnail: null,
           image: null,
@@ -114,7 +116,7 @@ export default function Events() {
               />
             ) : (
               <input
-                type="text"
+                type={type || 'text'}
                 name={key}
                 value={form[key]}
                 onChange={handleChange}
@@ -134,7 +136,9 @@ export default function Events() {
         {loading ? (
           <span className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></span>
         ) : (
-          <><FaCheckCircle className="animate-pulse" /> Publish Event</>
+          <>
+            <FaCheckCircle className="animate-pulse" /> Publish Event
+          </>
         )}
       </button>
       {submitted && (
@@ -145,17 +149,3 @@ export default function Events() {
     </form>
   )
 }
-
-// Add these to your tailwind.config.js for animation support:
-// theme: {
-//   extend: {
-//     keyframes: {
-//       'fade-in': { '0%': { opacity: 0 }, '100%': { opacity: 1 } },
-//       'fade-in-down': { '0%': { opacity: 0, transform: 'translateY(-20px)' }, '100%': { opacity: 1, transform: 'translateY(0)' } },
-//     },
-//     animation: {
-//       'fade-in': 'fade-in 0.7s ease',
-//       'fade-in-down': 'fade-in-down 0.7s ease',
-//     },
-//   },
-// }
