@@ -18,13 +18,20 @@ export default function Forms() {
   const [modalType, setModalType] = useState('');
 
   useEffect(() => {
-    fetch('https://afrobeatsandiegobackend.onrender.com/api/forms/book-call')
-      .then(r => r.json())
-      .then(data => setBookings(data));
-
-    fetch('https://afrobeatsandiegobackend.onrender.com/api/forms/lets-connect')
-      .then(r => r.json())
-      .then(data => setConnects(data));
+    const fetchForms = async () => {
+      try {
+        const [bookRes, connectRes] = await Promise.all([
+          fetch('https://afrobeatsandiegobackend.onrender.com/api/forms/book-call'),
+          fetch('https://afrobeatsandiegobackend.onrender.com/api/forms/lets-connect'),
+        ]);
+        const [bookData, connectData] = await Promise.all([bookRes.json(), connectRes.json()]);
+        setBookings(bookData || []);
+        setConnects(connectData || []);
+      } catch (err) {
+        console.error('Error fetching form data:', err);
+      }
+    };
+    fetchForms();
   }, []);
 
   const toggleAttend = (id) =>
