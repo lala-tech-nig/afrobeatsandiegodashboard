@@ -1,217 +1,172 @@
-// components/Forms.jsx
 'use client'
 
-import { useState } from 'react'
-import { FaPhoneAlt, FaUser, FaEnvelope, FaCheckCircle, FaTimesCircle, FaCamera, FaYoutube, FaMapMarkerAlt, FaMoneyBillWave, FaEye, FaCalendarCheck, FaChevronLeft, FaChevronRight } from 'react-icons/fa'
-
-const bookCalls = [
-  { id: 1, name: 'Ada', email: 'ada@mail.com', phone: '08011112222', message: 'Want to schedule a call', attended: false }
-  // Add more items for testing pagination
-]
-
-const connectForms = [
-  {
-    id: 1,
-    name: 'Emeka',
-    role: 'Cinematographer',
-    equipment: 'Canon EOS R5',
-    demo: 'youtube.com/emekashoots',
-    style: 'Documentary',
-    description: 'Creative and fast.',
-    rate: '₦250k/day',
-    location: 'Abuja',
-    availability: 'Weekends only',
-    seen: false
-  }
-  // Add more items for testing pagination
-]
+import { useState, useEffect } from 'react'
+import {
+  FaPhoneAlt, FaUser, FaEnvelope, FaCheckCircle, FaTimesCircle,
+  FaCamera, FaYoutube, FaMapMarkerAlt, FaMoneyBillWave, FaEye,
+  FaCalendarCheck, FaChevronLeft, FaChevronRight
+} from 'react-icons/fa'
+import { Dialog } from '@headlessui/react'
 
 const PAGE_SIZE = 5
 
 export default function Forms() {
-  const [bookings, setBookings] = useState(bookCalls)
-  const [connects, setConnects] = useState(connectForms)
+  const [bookings, setBookings] = useState([])
+  const [connects, setConnects] = useState([])
 
-  // Pagination state
   const [bookPage, setBookPage] = useState(1)
   const [connectPage, setConnectPage] = useState(1)
 
-  const toggleAttend = (id) => {
+  const [modalItem, setModalItem] = useState(null)
+  const [modalType, setModalType] = useState('')
+
+  useEffect(() => {
+    fetch('https://afrobeatsandiegobackend.onrender.com/api/forms/book-call').then(r => r.json()).then(data => setBookings(data))
+    fetch('/api/connect-forms').then(r => r.json()).then(data => setConnects(data))
+  }, [])
+
+  const toggleAttend = id =>
     setBookings(prev => prev.map(b => b.id === id ? { ...b, attended: !b.attended } : b))
-  }
-
-  const toggleSeen = (id) => {
+  const toggleSeen = id =>
     setConnects(prev => prev.map(c => c.id === id ? { ...c, seen: !c.seen } : c))
-  }
 
-  // Pagination logic
-  const bookTotalPages = Math.ceil(bookings.length / PAGE_SIZE)
-  const connectTotalPages = Math.ceil(connects.length / PAGE_SIZE)
-  const pagedBookings = bookings.slice((bookPage - 1) * PAGE_SIZE, bookPage * PAGE_SIZE)
-  const pagedConnects = connects.slice((connectPage - 1) * PAGE_SIZE, connectPage * PAGE_SIZE)
+  const pageItems = (list, page) =>
+    list.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
+  const pagedBookings = pageItems(bookings, bookPage)
+  const pagedConnects = pageItems(connects, connectPage)
+
+  const openModal = (item, type) => {
+    setModalItem(item); setModalType(type)
+  }
+  const closeModal = () => setModalItem(null)
+
+  const truncate = (str, len = 20) =>
+    str.length > len ? str.slice(0, len) + '…' : str
+
+  const renderModalContent = () => {
+    if (!modalItem) return null
+    return (
+      <div className="space-y-3">
+        {Object.entries(modalItem).map(([k, v]) => (
+          <div key={k}>
+            <strong className="capitalize">{k.replace(/([A-Z])/g, ' $1')}:</strong>{' '}
+            {v.toString()}
+          </div>
+        ))}
+        <button
+          onClick={closeModal}
+          className="mt-4 px-4 py-2 bg-purple-600 text-white rounded"
+        >
+          Close
+        </button>
+      </div>
+    )
+  }
 
   return (
-    <div className="space-y-12 animate-fade-in">
-      {/* Book Calls Section */}
-      <div>
-        <h2 className="text-2xl font-extrabold text-purple-700 flex items-center gap-2 mb-4">
-          <FaPhoneAlt className="text-purple-400 animate-pulse" /> Book Calls
-        </h2>
-        <div className="overflow-x-auto rounded-2xl shadow-lg bg-white/90">
-          <table className="min-w-full divide-y divide-purple-100">
-            <thead>
-              <tr className="bg-gradient-to-r from-purple-100 to-purple-50">
-                <th className="px-4 py-3 text-left font-semibold text-purple-700">#</th>
-                <th className="px-4 py-3 text-left font-semibold text-purple-700"><FaUser className="inline mr-1" />Name</th>
-                <th className="px-4 py-3 text-left font-semibold text-purple-700"><FaEnvelope className="inline mr-1" />Email</th>
-                <th className="px-4 py-3 text-left font-semibold text-purple-700"><FaPhoneAlt className="inline mr-1" />Phone</th>
-                <th className="px-4 py-3 text-left font-semibold text-purple-700">Message</th>
-                <th className="px-4 py-3 text-center font-semibold text-purple-700">Attended</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-purple-50">
-              {pagedBookings.map((b, idx) => (
-                <tr key={b.id} className="hover:bg-purple-50 transition-colors duration-200">
-                  <td className="px-4 py-3">{(bookPage - 1) * PAGE_SIZE + idx + 1}</td>
-                  <td className="px-4 py-3">{b.name}</td>
-                  <td className="px-4 py-3">{b.email}</td>
-                  <td className="px-4 py-3">{b.phone}</td>
-                  <td className="px-4 py-3">{b.message}</td>
-                  <td className="px-4 py-3 text-center">
-                    <button
-                      onClick={() => toggleAttend(b.id)}
-                      className={`transition-all duration-300 rounded-full p-2 focus:outline-none
-                        ${b.attended ? 'bg-green-100 text-green-600 scale-110' : 'bg-purple-100 text-purple-400 hover:bg-purple-200'}
-                      `}
-                      title={b.attended ? 'Attended' : 'Mark as attended'}
-                    >
-                      {b.attended
-                        ? <FaCheckCircle className="text-xl animate-fade-in" />
-                        : <FaTimesCircle className="text-xl" />}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {/* Pagination Controls */}
-          {bookTotalPages > 1 && (
-            <div className="flex justify-end items-center gap-2 px-4 py-3">
-              <button
-                onClick={() => setBookPage(p => Math.max(1, p - 1))}
-                disabled={bookPage === 1}
-                className="p-2 rounded-full bg-purple-100 text-purple-600 hover:bg-purple-200 transition disabled:opacity-50"
-              >
-                <FaChevronLeft />
-              </button>
-              <span className="text-purple-700 font-semibold">{bookPage} / {bookTotalPages}</span>
-              <button
-                onClick={() => setBookPage(p => Math.min(bookTotalPages, p + 1))}
-                disabled={bookPage === bookTotalPages}
-                className="p-2 rounded-full bg-purple-100 text-purple-600 hover:bg-purple-200 transition disabled:opacity-50"
-              >
-                <FaChevronRight />
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+    <>
+      {/* Modal for details */}
+      <Dialog open={!!modalItem} onClose={closeModal} className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 bg-black/50" onClick={closeModal} />
+        <Dialog.Panel className="relative bg-white rounded-xl p-6 max-w-md w-full mx-auto">
+          <Dialog.Title className="text-xl font-semibold">
+            {modalType === 'book' ? 'Booking Details' : "Let's Connect Details"}
+          </Dialog.Title>
+          {renderModalContent()}
+        </Dialog.Panel>
+      </Dialog>
 
-      {/* Let's Connect Section */}
-      <div>
-        <h2 className="text-2xl font-extrabold text-purple-700 flex items-center gap-2 mb-4">
-          <FaCalendarCheck className="text-purple-400 animate-pulse" /> Let's Connect
+      {/* Book Calls Table */}
+      <section className="space-y-4">
+        <h2 className="text-2xl font-bold flex items-center gap-2 text-purple-700">
+          <FaPhoneAlt className="animate-pulse text-purple-400" /> Book Calls
         </h2>
-        <div className="overflow-x-auto rounded-2xl shadow-lg bg-white/90">
-          <table className="min-w-full divide-y divide-purple-100">
-            <thead>
-              <tr className="bg-gradient-to-r from-purple-100 to-purple-50">
-                <th className="px-4 py-3 text-left font-semibold text-purple-700">#</th>
-                <th className="px-4 py-3 text-left font-semibold text-purple-700"><FaUser className="inline mr-1" />Name</th>
-                <th className="px-4 py-3 text-left font-semibold text-purple-700">Role</th>
-                <th className="px-4 py-3 text-left font-semibold text-purple-700"><FaCamera className="inline mr-1" />Equipment</th>
-                <th className="px-4 py-3 text-left font-semibold text-purple-700"><FaYoutube className="inline mr-1" />Demo</th>
-                <th className="px-4 py-3 text-left font-semibold text-purple-700">Style</th>
-                <th className="px-4 py-3 text-left font-semibold text-purple-700">Description</th>
-                <th className="px-4 py-3 text-left font-semibold text-purple-700"><FaMoneyBillWave className="inline mr-1" />Rate</th>
-                <th className="px-4 py-3 text-left font-semibold text-purple-700"><FaMapMarkerAlt className="inline mr-1" />Location</th>
-                <th className="px-4 py-3 text-left font-semibold text-purple-700">Availability</th>
-                <th className="px-4 py-3 text-center font-semibold text-purple-700"><FaEye className="inline mr-1" />Seen</th>
+        <div className="overflow-x-auto bg-white/90 rounded-2xl shadow-lg">
+          <table className="min-w-full">
+            <thead className="bg-purple-100">
+              <tr>
+                <th>#</th><th>Name</th><th>Email</th><th>Phone</th><th>Message</th><th>Attended</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-purple-50">
-              {pagedConnects.map((c, idx) => (
-                <tr key={c.id} className="hover:bg-purple-50 transition-colors duration-200">
-                  <td className="px-4 py-3">{(connectPage - 1) * PAGE_SIZE + idx + 1}</td>
-                  <td className="px-4 py-3">{c.name}</td>
-                  <td className="px-4 py-3">{c.role}</td>
-                  <td className="px-4 py-3">{c.equipment}</td>
-                  <td className="px-4 py-3">
-                    <a
-                      href={`https://${c.demo}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-purple-600 underline hover:text-purple-800 transition-colors"
-                    >
-                      {c.demo}
-                    </a>
-                  </td>
-                  <td className="px-4 py-3">{c.style}</td>
-                  <td className="px-4 py-3">{c.description}</td>
-                  <td className="px-4 py-3">{c.rate}</td>
-                  <td className="px-4 py-3">{c.location}</td>
-                  <td className="px-4 py-3">{c.availability}</td>
-                  <td className="px-4 py-3 text-center">
-                    <button
-                      onClick={() => toggleSeen(c.id)}
-                      className={`transition-all duration-300 rounded-full p-2 focus:outline-none
-                        ${c.seen ? 'bg-green-100 text-green-600 scale-110' : 'bg-purple-100 text-purple-400 hover:bg-purple-200'}
-                      `}
-                      title={c.seen ? 'Seen' : 'Mark as seen'}
-                    >
-                      {c.seen
-                        ? <FaCheckCircle className="text-xl animate-fade-in" />
-                        : <FaEye className="text-xl" />}
+            <tbody>
+              {pagedBookings.map((b, i) => (
+                <tr
+                  key={b.id}
+                  className="hover:bg-purple-50 cursor-pointer"
+                  onClick={() => openModal(b, 'book')}
+                >
+                  <td>{(bookPage - 1) * PAGE_SIZE + i + 1}</td>
+                  <td>{truncate(b.name)}</td>
+                  <td>{truncate(b.email)}</td>
+                  <td>{truncate(b.phone)}</td>
+                  <td>{truncate(b.message)}</td>
+                  <td className="text-center">
+                    <button onClick={e => { e.stopPropagation(); toggleAttend(b.id) }}>
+                      {b.attended
+                        ? <FaCheckCircle className="text-green-600" />
+                        : <FaTimesCircle className="text-purple-400" />}
                     </button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          {/* Pagination Controls */}
-          {connectTotalPages > 1 && (
-            <div className="flex justify-end items-center gap-2 px-4 py-3">
-              <button
-                onClick={() => setConnectPage(p => Math.max(1, p - 1))}
-                disabled={connectPage === 1}
-                className="p-2 rounded-full bg-purple-100 text-purple-600 hover:bg-purple-200 transition disabled:opacity-50"
-              >
-                <FaChevronLeft />
-              </button>
-              <span className="text-purple-700 font-semibold">{connectPage} / {connectTotalPages}</span>
-              <button
-                onClick={() => setConnectPage(p => Math.min(connectTotalPages, p + 1))}
-                disabled={connectPage === connectTotalPages}
-                className="p-2 rounded-full bg-purple-100 text-purple-600 hover:bg-purple-200 transition disabled:opacity-50"
-              >
-                <FaChevronRight />
-              </button>
+          {Math.ceil(bookings.length / PAGE_SIZE) > 1 && (
+            <div className="flex items-center justify-end p-3 gap-2">
+              <button onClick={() => setBookPage(p => Math.max(1, p - 1))}><FaChevronLeft /></button>
+              <span>{bookPage} / {Math.ceil(bookings.length / PAGE_SIZE)}</span>
+              <button onClick={() => setBookPage(p => Math.min(Math.ceil(bookings.length / PAGE_SIZE), p + 1))}><FaChevronRight /></button>
             </div>
           )}
         </div>
-      </div>
-    </div>
+      </section>
+
+      {/* Let's Connect Table */}
+      <section className="space-y-4">
+        <h2 className="text-2xl font-bold flex items-center gap-2 text-purple-700">
+          <FaCalendarCheck className="animate-pulse text-purple-400" /> Let's Connect
+        </h2>
+        <div className="overflow-x-auto bg-white/90 rounded-2xl shadow-lg">
+          <table className="min-w-full">
+            <thead className="bg-purple-100">
+              <tr>
+                <th>#</th><th>Name</th><th>Role</th><th>Equipment</th><th>Demo</th><th>Rate</th><th>Seen</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pagedConnects.map((c, i) => (
+                <tr
+                  key={c.id}
+                  className="hover:bg-purple-50 cursor-pointer"
+                  onClick={() => openModal(c, 'connect')}
+                >
+                  <td>{(connectPage - 1) * PAGE_SIZE + i + 1}</td>
+                  <td>{truncate(c.name)}</td>
+                  <td>{truncate(c.role)}</td>
+                  <td>{truncate(c.equipment)}</td>
+                  <td><a href={`https://${c.demo}`} target="_blank" onClick={e => e.stopPropagation()}>{truncate(c.demo)}</a></td>
+                  <td>{truncate(c.rate)}</td>
+                  <td className="text-center">
+                    <button onClick={e => { e.stopPropagation(); toggleSeen(c.id) }}>
+                      {c.seen
+                        ? <FaCheckCircle className="text-green-600" />
+                        : <FaEye className="text-purple-400" />}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {Math.ceil(connects.length / PAGE_SIZE) > 1 && (
+            <div className="flex items-center justify-end p-3 gap-2">
+              <button onClick={() => setConnectPage(p => Math.max(1, p - 1))}><FaChevronLeft /></button>
+              <span>{connectPage} / {Math.ceil(connects.length / PAGE_SIZE)}</span>
+              <button onClick={() => setConnectPage(p => Math.min(Math.ceil(connects.length / PAGE_SIZE), p + 1))}><FaChevronRight /></button>
+            </div>
+          )}
+        </div>
+      </section>
+    </>
   )
 }
-
-// Add these to your tailwind.config.js for animation support:
-// theme: {
-//   extend: {
-//     keyframes: {
-//       'fade-in': { '0%': { opacity: 0 }, '100%': { opacity: 1 } },
-//     },
-//     animation: {
-//       'fade-in': 'fade-in 0.7s ease',
-//     },
-//   },
-// }
