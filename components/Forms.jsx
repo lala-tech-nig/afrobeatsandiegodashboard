@@ -22,7 +22,7 @@ export default function Forms() {
       .then(r => r.json())
       .then(data => setBookings(data));
 
-    fetch('/api/connect-forms')
+    fetch('https://afrobeatsandiegobackend.onrender.com/api/forms/lets-connect')
       .then(r => r.json())
       .then(data => setConnects(data));
   }, []);
