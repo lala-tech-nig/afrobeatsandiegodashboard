@@ -1,195 +1,202 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
-  FaPhoneAlt, FaCheckCircle, FaTimesCircle, FaEye,
-  FaCalendarCheck, FaChevronLeft, FaChevronRight
-} from 'react-icons/fa';
-import { Dialog } from '@headlessui/react';
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 
-const PAGE_SIZE = 5;
+const PAGE_SIZE = 10;
 
-export default function Forms() {
+const Forms = () => {
   const [bookings, setBookings] = useState([]);
   const [connects, setConnects] = useState([]);
   const [bookPage, setBookPage] = useState(1);
   const [connectPage, setConnectPage] = useState(1);
   const [modalItem, setModalItem] = useState(null);
-  const [modalType, setModalType] = useState('');
 
-  useEffect(() => {
-    const fetchForms = async () => {
-      try {
-        const [bookRes, connectRes] = await Promise.all([
-          fetch('https://afrobeatsandiegobackend.onrender.com/api/forms/book-call'),
-          fetch('https://afrobeatsandiegobackend.onrender.com/api/forms/lets-connect'),
-        ]);
-        const [bookData, connectData] = await Promise.all([bookRes.json(), connectRes.json()]);
-        setBookings(bookData || []);
-        setConnects(connectData || []);
-      } catch (err) {
-        console.error('Error fetching form data:', err);
-      }
-    };
-    fetchForms();
-  }, []);
+  const fetchData = async () => {
+    try {
+      const [bookRes, connectRes] = await Promise.all([
+        fetch("/api/bookcall"),
+        fetch("/api/letsconnect"),
+      ]);
+      const [bookData, connectData] = await Promise.all([
+        bookRes.json(),
+        connectRes.json(),
+      ]);
 
-  const toggleAttend = (id) =>
-    setBookings(prev =>
-      prev.map(b => b.id === id ? { ...b, attended: !b.attended } : b)
-    );
-
-  const toggleSeen = (id) =>
-    setConnects(prev =>
-      prev.map(c => c.id === id ? { ...c, seen: !c.seen } : c)
-    );
-
-  const pageItems = (list, page) =>
-    list.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-
-  const openModal = (item, type) => {
-    setModalItem(item);
-    setModalType(type);
+      // Ensure the data are arrays
+      setBookings(Array.isArray(bookData) ? bookData : []);
+      setConnects(Array.isArray(connectData) ? connectData : []);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    }
   };
 
-  const closeModal = () => setModalItem(null);
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-  const truncate = (str, len = 20) =>
-    typeof str === 'string' && str.length > len ? str.slice(0, len) + '…' : str;
+  const pageItems = (list, page) =>
+    Array.isArray(list)
+      ? list.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+      : [];
 
-  const renderModalContent = () => {
-    if (!modalItem) return null;
-    return (
-      <div className="space-y-3">
-        {Object.entries(modalItem).map(([k, v]) => (
-          <div key={k}>
-            <strong className="capitalize">{k.replace(/([A-Z])/g, ' $1')}:</strong>{' '}
-            {v?.toString()}
-          </div>
-        ))}
-        <button
-          onClick={closeModal}
-          className="mt-4 px-4 py-2 bg-purple-600 text-white rounded"
-        >
-          Close
-        </button>
-      </div>
-    );
+  const nextPage = (type) => {
+    if (type === "book" && bookPage * PAGE_SIZE < bookings.length) {
+      setBookPage((prev) => prev + 1);
+    }
+    if (type === "connect" && connectPage * PAGE_SIZE < connects.length) {
+      setConnectPage((prev) => prev + 1);
+    }
+  };
+
+  const prevPage = (type) => {
+    if (type === "book" && bookPage > 1) {
+      setBookPage((prev) => prev - 1);
+    }
+    if (type === "connect" && connectPage > 1) {
+      setConnectPage((prev) => prev - 1);
+    }
   };
 
   return (
-    <>
+    <div className="w-full">
+      <Tabs defaultValue="bookcall" className="w-full">
+        <TabsList className="w-full flex">
+          <TabsTrigger value="bookcall" className="w-1/2">
+            Book a Call
+          </TabsTrigger>
+          <TabsTrigger value="letsconnect" className="w-1/2">
+            Let's Connect
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Book a Call Tab */}
+        <TabsContent value="bookcall">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead>Details</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pageItems(bookings, bookPage).map((booking, idx) => (
+                  <TableRow key={idx}>
+                    <TableCell>{booking.name}</TableCell>
+                    <TableCell>{booking.email}</TableCell>
+                    <TableCell>{booking.phone}</TableCell>
+                    <TableCell>
+                      <Button onClick={() => setModalItem(booking)}>
+                        View
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <div className="flex justify-between p-2">
+              <Button
+                variant="outline"
+                onClick={() => prevPage("book")}
+                disabled={bookPage === 1}
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Prev
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => nextPage("book")}
+                disabled={bookPage * PAGE_SIZE >= bookings.length}
+              >
+                Next
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* Let's Connect Tab */}
+        <TabsContent value="letsconnect">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead>Message</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pageItems(connects, connectPage).map((connect, idx) => (
+                  <TableRow key={idx}>
+                    <TableCell>{connect.name}</TableCell>
+                    <TableCell>{connect.email}</TableCell>
+                    <TableCell>{connect.phone}</TableCell>
+                    <TableCell>
+                      <Button onClick={() => setModalItem(connect)}>
+                        View
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <div className="flex justify-between p-2">
+              <Button
+                variant="outline"
+                onClick={() => prevPage("connect")}
+                disabled={connectPage === 1}
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Prev
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => nextPage("connect")}
+                disabled={connectPage * PAGE_SIZE >= connects.length}
+              >
+                Next
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
+
       {/* Modal */}
-      <Dialog open={!!modalItem} onClose={closeModal} className="fixed inset-0 z-50 flex items-center justify-center">
-        <div className="fixed inset-0 bg-black/40" onClick={closeModal} />
-        <Dialog.Panel className="relative bg-white rounded-xl p-6 max-w-md w-full mx-auto z-50">
-          <Dialog.Title className="text-xl font-semibold mb-4">
-            {modalType === 'book' ? 'Booking Details' : "Let's Connect Details"}
-          </Dialog.Title>
-          {renderModalContent()}
-        </Dialog.Panel>
+      <Dialog open={!!modalItem} onOpenChange={() => setModalItem(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Details</DialogTitle>
+          </DialogHeader>
+          {modalItem && (
+            <div className="space-y-2">
+              <p><strong>Name:</strong> {modalItem.name}</p>
+              <p><strong>Email:</strong> {modalItem.email}</p>
+              <p><strong>Phone:</strong> {modalItem.phone}</p>
+              {modalItem.message && <p><strong>Message:</strong> {modalItem.message}</p>}
+              {modalItem.topic && <p><strong>Topic:</strong> {modalItem.topic}</p>}
+              {modalItem.details && <p><strong>Details:</strong> {modalItem.details}</p>}
+              {modalItem.date && <p><strong>Date:</strong> {modalItem.date}</p>}
+            </div>
+          )}
+        </DialogContent>
       </Dialog>
-
-      {/* Book a Call Table */}
-      <section className="space-y-4 my-6">
-        <h2 className="text-2xl font-bold flex items-center gap-2 text-purple-700">
-          <FaPhoneAlt className="animate-pulse text-purple-400" /> Book Calls
-        </h2>
-        <div className="overflow-x-auto bg-white/90 rounded-2xl shadow-lg">
-          <table className="min-w-full text-sm">
-            <thead className="bg-purple-100 text-left">
-              <tr>
-                <th>#</th><th>Name</th><th>Email</th><th>Phone</th><th>Message</th><th>Attended</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pageItems(bookings, bookPage).map((b, i) => (
-                <tr
-                  key={b.id}
-                  className="hover:bg-purple-50 cursor-pointer"
-                  onClick={() => openModal(b, 'book')}
-                >
-                  <td>{(bookPage - 1) * PAGE_SIZE + i + 1}</td>
-                  <td>{truncate(b.fullName || b.name)}</td>
-                  <td>{truncate(b.email)}</td>
-                  <td>{truncate(b.phoneNumber || b.phone)}</td>
-                  <td>{truncate(b.message)}</td>
-                  <td className="text-center">
-                    <button onClick={(e) => { e.stopPropagation(); toggleAttend(b.id); }}>
-                      {b.attended
-                        ? <FaCheckCircle className="text-green-600" />
-                        : <FaTimesCircle className="text-purple-400" />}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {bookings.length > PAGE_SIZE && (
-            <div className="flex items-center justify-end p-3 gap-2">
-              <button onClick={() => setBookPage(p => Math.max(1, p - 1))}><FaChevronLeft /></button>
-              <span>{bookPage} / {Math.ceil(bookings.length / PAGE_SIZE)}</span>
-              <button onClick={() => setBookPage(p => Math.min(Math.ceil(bookings.length / PAGE_SIZE), p + 1))}><FaChevronRight /></button>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Let's Connect Table */}
-      <section className="space-y-4 my-6">
-        <h2 className="text-2xl font-bold flex items-center gap-2 text-purple-700">
-          <FaCalendarCheck className="animate-pulse text-purple-400" /> Let's Connect
-        </h2>
-        <div className="overflow-x-auto bg-white/90 rounded-2xl shadow-lg">
-          <table className="min-w-full text-sm">
-            <thead className="bg-purple-100 text-left">
-              <tr>
-                <th>#</th><th>Name</th><th>Role</th><th>Equipment</th><th>Demo</th><th>Rate</th><th>Seen</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pageItems(connects, connectPage).map((c, i) => (
-                <tr
-                  key={c.id}
-                  className="hover:bg-purple-50 cursor-pointer"
-                  onClick={() => openModal(c, 'connect')}
-                >
-                  <td>{(connectPage - 1) * PAGE_SIZE + i + 1}</td>
-                  <td>{truncate(c.name)}</td>
-                  <td>{truncate(c.role)}</td>
-                  <td>{truncate(c.equipment)}</td>
-                  <td>
-                    <a
-                      href={c.demo?.startsWith('http') ? c.demo : `https://${c.demo}`}
-                      target="_blank"
-                      onClick={e => e.stopPropagation()}
-                      rel="noreferrer"
-                      className="text-blue-600 underline"
-                    >
-                      {truncate(c.demo)}
-                    </a>
-                  </td>
-                  <td>{truncate(c.rate)}</td>
-                  <td className="text-center">
-                    <button onClick={e => { e.stopPropagation(); toggleSeen(c.id); }}>
-                      {c.seen
-                        ? <FaCheckCircle className="text-green-600" />
-                        : <FaEye className="text-purple-400" />}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {connects.length > PAGE_SIZE && (
-            <div className="flex items-center justify-end p-3 gap-2">
-              <button onClick={() => setConnectPage(p => Math.max(1, p - 1))}><FaChevronLeft /></button>
-              <span>{connectPage} / {Math.ceil(connects.length / PAGE_SIZE)}</span>
-              <button onClick={() => setConnectPage(p => Math.min(Math.ceil(connects.length / PAGE_SIZE), p + 1))}><FaChevronRight /></button>
-            </div>
-          )}
-        </div>
-      </section>
-    </>
+    </div>
   );
-}
+};
+
+export default Forms;
